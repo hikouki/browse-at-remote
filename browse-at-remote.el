@@ -49,7 +49,8 @@
     ("gist.github.com" . "gist")
     ("git.sr.ht" . "sourcehut")
     ("pagure.io" . "pagure")
-    ("src.fedoraproject.org" . "pagure"))
+    ("src.fedoraproject.org" . "pagure")
+    ("dev.azure.com" . "azure"))
   "Alist of domain patterns to remote types."
 
   :type '(alist :key-type (string :tag "Domain")
@@ -62,7 +63,8 @@
                              (const :tag "Phabricator" "phabricator")
                              (const :tag "gist.github.com" "gist")
                              (const :tag "sourcehut" "sourcehut")
-                             (const :tag "pagure" "pagure")))
+                             (const :tag "pagure" "pagure")
+                             (const :tag "AzureRepos" "azure")))
   :group 'browse-at-remote)
 
 (defcustom browse-at-remote-prefer-symbolic t
@@ -251,6 +253,28 @@ If HEAD is detached, return nil."
 
 (defun browse-at-remote--format-commit-url-as-github (repo-url commithash)
   "Commit URL formatted for github"
+  (format "%s/commit/%s" repo-url commithash))
+
+(defun browse-at-remote-azure-format (repo-url)
+  "Get a azure formatted URL."
+  (let ((matches (s-match "^\\(.+\\)/\\(.+\\)$" (s-replace "https://ssh\.dev\.azure\.com/v3" "https://dev.azure.com" repo-url))))
+    (concat (nth 1 matches) "/_git/" (nth 2 matches))))
+
+(defun browse-at-remote--format-region-url-as-azure (repo-url location filename &optional linestart lineend)
+  "URL formatted for azure."
+  (cond
+   ((and linestart lineend)
+    (format
+     "%s?path=/%s&version=GB%s&line=%d&lineEnd=%d&lineStartColumn=1&lineEndColumn=1"
+     (browse-at-remote-azure-format repo-url) filename location linestart (+ 1 lineend)))
+   (linestart
+    (format
+     "%s?path=%s&version=GB%s&line=%d&lineEnd=%d&lineStartColumn=1&lineEndColumn=1"
+     (browse-at-remote-azure-format repo-url) filename location linestart (+ 1 linestart)))
+   (t (format "%s/tree/%s/%s" repo-url location filename))))
+
+(defun browse-at-remote--format-commit-url-as-azure (repo-url commithash)
+  "Commit URL formatted for azure"
   (format "%s/commit/%s" repo-url commithash))
 
 (defun browse-at-remote--format-region-url-as-bitbucket (repo-url location filename &optional linestart lineend)
