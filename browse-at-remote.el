@@ -50,7 +50,8 @@
     ("git.sr.ht" . "sourcehut")
     ("pagure.io" . "pagure")
     ("src.fedoraproject.org" . "pagure")
-    ("dev.azure.com" . "azure"))
+    ("dev.azure.com" . "azure")
+    ("git-codecommit.ap-northeast-1.amazonaws.com" . "aws"))
   "Alist of domain patterns to remote types."
 
   :type '(alist :key-type (string :tag "Domain")
@@ -64,7 +65,8 @@
                              (const :tag "gist.github.com" "gist")
                              (const :tag "sourcehut" "sourcehut")
                              (const :tag "pagure" "pagure")
-                             (const :tag "AzureRepos" "azure")))
+                             (const :tag "AzureRepos" "azure")
+                             (const :tag "AwsCodeCommit" "aws")))
   :group 'browse-at-remote)
 
 (defcustom browse-at-remote-prefer-symbolic t
@@ -255,6 +257,25 @@ If HEAD is detached, return nil."
   "Commit URL formatted for github"
   (format "%s/commit/%s" repo-url commithash))
 
+(defun browse-at-remote-aws-format (repo-url)
+  "Get a aws formatted URL."
+  (let ((matches (s-match "^https://git-codecommit\.\\([^.]+\\)\.amazonaws\.com/v1/repos/\\(.+\\)$" repo-url)))
+    (concat "https://" (nth 1 matches) ".console.aws.amazon.com/codesuite/codecommit/repositories/" (nth 2 matches))))
+
+(browse-at-remote-aws-format "https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/optin-office")
+
+(defun browse-at-remote--format-region-url-as-aws (repo-url location filename &optional linestart lineend)
+  "URL formatted for aws."
+  (cond
+   ((and linestart lineend)
+    (format "%s/browse/refs/heads/%s/--/%s?lines=%d-%d" (browse-at-remote-aws-format repo-url) location filename linestart lineend))
+   (linestart (format "%s/browse/refs/heads/%s/--/%s?lines=%d-%d" (browse-at-remote-aws-format repo-url) location filename linestart linestart))
+   (t (format "%s/tree/%s/%s" repo-url location filename))))
+
+(defun browse-at-remote--format-commit-url-as-aws (repo-url commithash)
+  "Commit URL formatted for aws"
+  (format "%s/commit/%s" (browse-at-remote-aws-format repo-url) commithash))
+
 (defun browse-at-remote-azure-format (repo-url)
   "Get a azure formatted URL."
   (let ((matches (s-match "^\\(.+\\)/\\(.+\\)$" (s-replace "https://ssh\.dev\.azure\.com/v3" "https://dev.azure.com" repo-url))))
@@ -275,7 +296,7 @@ If HEAD is detached, return nil."
 
 (defun browse-at-remote--format-commit-url-as-azure (repo-url commithash)
   "Commit URL formatted for azure"
-  (format "%s/commit/%s" repo-url commithash))
+  (format "%s/commit/%s" (browse-at-remote-azure-format repo-url) commithash))
 
 (defun browse-at-remote--format-region-url-as-bitbucket (repo-url location filename &optional linestart lineend)
   "URL formatted for bitbucket"
