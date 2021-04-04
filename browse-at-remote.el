@@ -97,7 +97,11 @@ By default is true."
   ;; If the protocol isn't specified, git treats it as an SSH URL.
   (unless (s-contains-p "://" remote-url)
     (setq remote-url (concat "ssh://" remote-url)))
-  (let* ((parsed (url-generic-parse-url remote-url))
+  (let* ((parsed
+          (url-generic-parse-url
+           (if (s-present? (browse-at-remote--get-remote-url-from-config))
+               (browse-at-remote--get-remote-url-from-config)
+             remote-url)))
          (host (url-host parsed))
          (port (url-port-if-non-default parsed))
          (web-proto
@@ -202,6 +206,10 @@ If HEAD is detached, return nil."
 (defun browse-at-remote--get-remote-type-from-config ()
   "Get remote type from current repo."
   (browse-at-remote--get-from-config "browseAtRemote.type"))
+
+(defun browse-at-remote--get-remote-url-from-config ()
+  "Get remote url from current repo."
+  (browse-at-remote--get-from-config "browseAtRemote.url"))
 
 (defun browse-at-remote--get-from-config (key)
   (with-temp-buffer
